@@ -1,0 +1,31 @@
+# Environment
+.venv/
+env/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+
+# Data (Crucial: Do not upload large datasets)
+raw_data/
+processed_data/
+
+# Models and Artifacts
+models/*.pkl
+models/*.joblib
+models/*.bin
+models/*.json
+!models/final_ensemble_meta.json # Keep only small metadata if needed
+
+# Logs
+logs/*.log
+*.log
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store
+
+# Notebooks
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*

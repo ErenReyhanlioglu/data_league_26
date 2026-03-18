@@ -1,0 +1,81 @@
+Project: Data League '26 No-Show Prediction
+Pipeline Logic and File Manifest
+--------------------------------------------------
+
+STAGE 1: DATA INTEGRATION & CLEANING
+- Module: scripts/data_loader.py
+- Input: raw_data/*.csv
+- Tasks: Left join (Appointments + Patients + Clinics), Downcasting, Time Leakage check.
+- Logic: Enforce Lead_Time >= 0. Flag missing SMS lead hours.
+- Outputs: processed_data/stage1/train_base.parquet, test_base.parquet
+
+STAGE 2: TIME-SPLIT & ADVERSARIAL VALIDATION
+- Module: scripts/utils/validation.py
+- Input: stage1/train_base.parquet
+- Logic: Chronological split (Train: Jan-Sep, Val: Oct).
+- Tasks: Binary classification (Train vs Test) to detect distribution shift.
+- Outputs: stage2/sub_train.parquet, sub_val.parquet, stage2/adversarial_report.json
+
+STAGE 3: FEATURE ENGINEERING (FE) & COLD-START
+- Module: scripts/feature_engineering.py
+- Input: stage2/*.parquet
+- Tasks: 
+    - Hierarchical Target Encoding (Clinic -> Specialty -> Area).
+    - Patient Cold-Start strategy (Demographic Proxy Imputation).
+    - Cyclic Temporal Encoding (Sin/Cos).
+- Artifacts: models/stage3_transformers.joblib
+- Outputs: stage3/sub_train_fe.parquet, sub_val_fe.parquet, stage3/test_fe.parquet
+
+STAGE 4: STATISTICAL FILTERING
+- Module: scripts/utils/statistical_tests.py
+- Tasks: Calculate WoE, IV and VIF.
+- Selection Logic: Keep features with $IV > 0.02$ and $VIF < 10$.
+- Outputs: processed_data/stage4/final_feature_list.json
+
+STAGE 5: DYNAMIC MODELING & OPTUNA TUNING
+- Module: scripts/model_trainer.py
+- Logic: Expanding Window CV (4 chronological folds).
+- Tasks: Optuna tuning for PR-AUC, Probability Calibration (Isotonic).
+- Outputs: stage5/best_params.json, stage5/validation_stability.json, models/tuned_models.pkl
+
+STAGE 6: FINAL INFERENCE & ENSEMBLE
+- Module: scripts/engine.py
+- Logic: Full 10-month retrain + Rank Averaging Ensemble (LGBM, CatBoost, XGBoost).
+- Final Output: processed_data/stage6/submission.csv
+
+data_league_26/
+├── .venv/                      # Virtual environment (ignored in git)
+├── .gitignore                  # Git ignore rules
+├── requirements.txt            # Dependency list
+├── pipeline.txt                # Orchestration map & logic
+├── logs/                       # Execution logs per stage
+├── models/                     # Saved model artifacts (.pkl, .joblib)
+├── raw_data/                   # Original data (read-only)
+│   ├── appointments_train.csv
+│   ├── appointments_test.csv
+│   ├── patients.csv
+│   ├── clinics.csv
+│   └── sample_submission.csv
+├── processed_data/             # Intermediate and final outputs (Parquet)
+│   ├── stage1/                 # Base integrated data
+│   ├── stage2/                 # Train/Val splits & adversarial reports
+│   ├── stage3/                 # Feature engineered datasets
+│   ├── stage4/                 # Statistical filter results (JSON)
+│   ├── stage5/                 # Hyperparameters & stability reports
+│   └── stage6/                 # Final submission.csv
+├── scripts/                    # Modular Python Library
+│   ├── config.py               # Paths, constants, and hyperparameter grids
+│   ├── data_loader.py          # Stage 1 logic
+│   ├── feature_engineering.py   # Stage 3 logic
+│   ├── model_trainer.py        # Stage 5 & 6 logic
+│   ├── engine.py               # Main Orchestrator
+│   └── utils/                  # Shared utility modules
+│       ├── __init__.py
+│       ├── metrics.py          # PR-AUC & Rank Averaging
+│       ├── plotting.py         # Visual diagnostics
+│       ├── validation.py       # Adversarial & Expanding Window CV
+│       └── statistical_tests.py # WoE, IV, VIF logic
+└── notebooks/                  # EDA and experimentation
+    ├── 01_eda_and_profiling.ipynb
+    ├── 02_feature_importance.ipynb
+    └── 03_calibration_analysis.ipynb

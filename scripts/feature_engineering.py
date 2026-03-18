@@ -186,7 +186,6 @@ def expand_to_150_plus(train_df, target_df, target_col='label_noshow'):
     df_result = target_df.copy()
     global_mean = train_df[target_col].mean()
     
-    # 1. Combinatorial Target Encoding
     cat_cols = ['specialty', 'area_id', 'booking_channel', 'appointment_type', 'sex', 'day_of_week', 'hour']
     
     for combo in itertools.combinations(cat_cols, 2):
@@ -199,7 +198,6 @@ def expand_to_150_plus(train_df, target_df, target_col='label_noshow'):
         df_result = df_result.merge(agg, on=list(combo), how='left')
         df_result[col_name] = df_result[col_name].fillna(global_mean)
 
-    # 2. Group-By Statistics Explosion
     nums = ['lead_time_hours', 'distance_km', 'age', 'wait_mins_est']
     cats = ['specialty', 'area_id', 'booking_channel', 'clinic_id']
     
@@ -213,7 +211,6 @@ def expand_to_150_plus(train_df, target_df, target_col='label_noshow'):
             stats.columns = [c] + new_cols
             df_result = df_result.merge(stats, on=c, how='left')
             
-    # 3. Time Lag Features (Safety Handling)
     if 'prev_noshow_1' not in df_result.columns:
         if target_col in df_result.columns:
             df_result = df_result.sort_values(['patient_id', 'appointment_datetime'])

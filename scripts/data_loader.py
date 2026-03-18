@@ -55,3 +55,25 @@ def downcast_memory(df):
     for col in int_cols:
         df[col] = pd.to_numeric(df[col], downcast='integer')
     return df
+
+def check_missing_values(df, name="Dataset"):
+    """
+    Analyzes missing values in the dataframe and returns a summary.
+    Rational approach to identify data quality issues before FE.
+    """
+    missing_count = df.isnull().sum()
+    missing_percent = 100 * df.isnull().sum() / len(df)
+    
+    missing_table = pd.concat([missing_count, missing_percent], axis=1)
+    missing_table.columns = ['Missing Values', '% of Total Values']
+    
+    # Filter only columns with missing values
+    missing_table = missing_table[missing_table['Missing Values'] > 0].sort_values('% of Total Values', ascending=False)
+    
+    if missing_table.empty:
+        print(f"Excellent: No missing values found in {name}.")
+    else:
+        print(f"Missing values found in {name}:")
+        print(missing_table)
+    
+    return missing_table

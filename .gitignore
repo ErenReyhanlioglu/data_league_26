@@ -6,7 +6,7 @@ ENV/
 __pycache__/
 *.py[cod]
 
-# Data (Crucial: Do not upload large datasets)
+# Data 
 raw_data/
 processed_data/
 

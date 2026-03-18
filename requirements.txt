@@ -1,0 +1,24 @@
+# Data Manipulation & Storage
+pandas
+numpy
+pyarrow
+scipy
+
+# Machine Learning Models
+lightgbm
+xgboost
+catboost
+
+# Optimization & Evaluation
+optuna
+scikit-learn
+category_encoders
+
+# Visualization
+matplotlib
+seaborn
+
+# Development & Utilities
+ipykernel
+joblib
+tqdm

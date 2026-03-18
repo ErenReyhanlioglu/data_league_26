@@ -1,6 +1,13 @@
 import pandas as pd
 import numpy as np
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import (
+    average_precision_score, 
+    roc_auc_score, 
+    precision_recall_curve, 
+    f1_score,
+    classification_report
+)
+from sklearn.calibration import calibration_curve
 
 def evaluate_univariate_auc(df: pd.DataFrame, features: list, target: str) -> pd.DataFrame:
     """
@@ -43,11 +50,9 @@ def evaluate_univariate_auc(df: pd.DataFrame, features: list, target: str) -> pd
         except Exception as e:
             print(f"Error calculating AUC for {feature}: {e}")
             
-    # Convert to DataFrame and sort from highest predictive power to lowest
     results_df = pd.DataFrame(auc_results)
     results_df = results_df.sort_values(by='Univariate_AUC', ascending=False).reset_index(drop=True)
     
-    # Display the top and bottom features
     print("\n--- Top 10 Strongest Features ---")
     print(results_df.head(10).to_string(index=False))
     
@@ -56,7 +61,32 @@ def evaluate_univariate_auc(df: pd.DataFrame, features: list, target: str) -> pd
     
     return results_df
 
-# Example Execution:
-# meta_cols = ['appointment_id', 'patient_id', 'clinic_id', 'label_noshow', 'appointment_datetime', 'booking_datetime']
-# pure_features_to_test = [col for col in sub_train_pure.columns if col not in meta_cols]
-# auc_ranking = evaluate_univariate_auc(df=sub_train_pure, features=pure_features_to_test, target='label_noshow')
+def calculate_all_metrics(y_true, y_prob, threshold=0.5):
+    """
+    Computes a comprehensive suite of metrics for binary classification.
+    Focuses on PR-AUC (Average Precision) as the primary competition metric.
+    """
+    y_pred = (y_prob >= threshold).astype(int)
+    
+    metrics = {
+        'pr_auc': average_precision_score(y_true, y_prob),
+        'roc_auc': roc_auc_score(y_true, y_prob),
+        'f1_score': f1_score(y_true, y_pred),
+        'precision': classification_report(y_true, y_pred, output_dict=True)['1']['precision'],
+        'recall': classification_report(y_true, y_pred, output_dict=True)['1']['recall']
+    }
+    return metrics
+
+def get_pr_curve_data(y_true, y_prob):
+    """Returns precision and recall values for plotting PR Curve."""
+    precision, recall, thresholds = precision_recall_curve(y_true, y_prob)
+    return precision, recall, thresholds
+
+def calculate_expected_calibration_error(y_true, y_prob, n_bins=10):
+    """
+    Approximates the Expected Calibration Error (ECE).
+    Measures the gap between predicted probability and actual frequency.
+    """
+    prob_true, prob_pred = calibration_curve(y_true, y_prob, n_bins=n_bins)
+    ece = np.mean(np.abs(prob_true - prob_pred))
+    return ece
